@@ -1,0 +1,251 @@
+#
+# milestone.py
+#
+# TextModel project!
+#
+# Name: Luis Beltran
+#
+
+from porter import create_stem
+import math
+import string
+
+class TextModel:
+    """A class supporting complex models of text."""
+
+
+    def __init__(self):
+        """Create an empty TextModel."""
+        # 
+        # The text in the model, all in a single string--the original
+        # and "cleaned" versions.
+        #
+        self.text = ''            # No text present yet
+        self.cleanedtext = ''     # Nor any cleaned text yet
+                                  # ..(cleaned == only letters, all lowercase)
+
+        #
+        # Create dictionaries for each characteristic
+        #
+        self.words = {}           # For counting words
+        self.wordlengths = {}     # For counting word lengths
+        self.stems = {}           # For counting stems
+        self.sentencelengths = {} # For counting sentence lengths
+        self.punctuation = {}     # For counting punctuation
+        
+        # Create another dictionary of your own
+        #
+        self.myparameter = {}     # For counting ___________
+
+    def __repr__(self):
+        """Display the contents of a TextModel."""
+        s = f'Words:\n{str(self.words)}\n\n'
+        s += f'Word lengths:\n{str(self.wordlengths)}\n\n'
+        s += f'Stems:\n{str(self.stems)}\n\n'
+        s += f'Sentence lengths:\n{str(self.sentencelengths)}\n\n'
+        s += f'Punctuation:\n{str(self.punctuation)}\n\n'
+        s += '+'*55 + '\n'
+        s += f'Text[:42]    {self.text[:42]}\n'
+        s += f'Cleaned[:42] {self.cleanedtext[:42]}\n'
+        s += '+'*55 + '\n\n'
+        return s
+
+    # We provide two text-adding methods (functions) here:
+    def addRawText(self, text):
+        """addRawText accepts self (the object itself)
+                      and text, a string of raw text to add.
+           Nothing is returned from this method, but
+           the text _is_ added.
+        """
+        self.text += text 
+        self.cleanedtext += self.cleanString(self.text) 
+
+    # The second one adds text from a file:
+    def addFileText(self, filename):
+        """addFileText accepts a filename.
+            
+           Nothing is returned from this method, but
+           the file is opened and its text _is_ added.
+
+           If the file is not present, it will crash!
+        """
+        f = open(filename, 'r', encoding='latin1')
+                               # The above may need utf-8 or utf-16, depending
+        text = f.read()        # Read all of the contents into text 
+        f.close()              # Close the file
+        self.addRawText(text)  # Uses the previous method!
+
+    # Include other functions here.
+    # In particular, you'll need functions that add to the model.
+
+    def makeSentenceLengths(self):
+        """Creates the dictionary of sentence lengths
+               should use self.text, because it needs the punctuation!
+        """
+        text = self.text
+        LoW = text.split()
+        words = 0
+        for i in LoW:
+            words += 1
+            if '.' in i or '!' in i or '?' in i:
+                if words in self.sentencelengths:
+                    self.sentencelengths[words] +=1
+                else:
+                    self.sentencelengths[words] = 1
+                words = 0
+
+        return self.sentencelengths
+
+            
+           # Not implemented yet (pass is the empty statement)
+               # See description
+
+
+    def cleanString(self, s):
+        """Returns the string s, but
+           with only ASCII characters, only lowercase, and no punctuation.
+           See the description and hints in the problem!
+        """
+        
+        s = s.encode("ascii", "ignore")   # Ignores non-ASCII characters
+        s = s.decode()         # Decodes it back to a string (with the non-ACSII characters removed) 
+        
+        s = s.lower()    # Not implemented fully: this just lower-cases
+
+        for p in string.punctuation:
+            s= s.replace(p, '')
+        self.cleanedtext = s
+        return s
+
+    def makeWordLengths(self):
+        """This function creates a dictionary of the world length 
+        features"""
+
+        self.wordlengths = {}
+
+        text = self.text 
+
+        ctext = self.cleanString(text)
+
+        LoW = ctext.split() 
+
+        for p in range(len(LoW)):
+            if len(LoW[p]) in self.wordlengths:
+                self.wordlengths[len(LoW[p])] +=1
+            else:
+                self.wordlengths[len(LoW[p])] = 1
+        return self.wordlengths
+
+    def makeWords(self):
+        """Creates the dictionary of sentence lengths
+               should use self.text, because it needs the punctuation!
+        """
+        text = self.cleanedtext
+        self.words = {}
+
+        LoW = text.split()
+        for i in range(len(LoW)):
+            if LoW[i] in self.words:
+                self.words[LoW[i]] += 1
+            else:
+                self.words[LoW[i]] = 1
+        return self.words
+
+    def makeStems(self):
+        """Creates a dictionary of the stems of the words
+        """
+        text = self.text
+        LoW = text.split()
+        for i in LoW:
+            stem = create_stem(i)
+            print(stem)
+            if stem in self.stems:
+                self.stems[stem] +=1
+            else:
+                self.stems[stem] = 1
+
+    def makePunctuation(self):
+        text = self.text
+        LoW = text.split()
+        for i in LoW:
+            if i[-1] in ".,!?;:":
+                if i[-1] in self.punctuation:
+                    self.punctuation[i[-1]] +=1
+                else:
+                    self.punctuation[i[-1]] = 1
+        
+
+    def normalizeDictionary(self, d):
+        total = sum([i for i in d.values()])
+        nd = {}
+        for i in d:
+            nd[i] = d[i]/total
+        return nd
+
+    def smallestValue(self, nd1, nd2):
+
+        values = [i for i in nd1.values()] + [i for i in nd2.values()]
+        values.sort()
+        for i in values:
+            if i > 0:
+                return i
+            
+    def compareDictionaries(self, d, nd1, nd2):
+        total_log_prob = 0.0 
+        epsilon = self.smallestValue(nd1, nd2)/2
+        for k in d:
+            if k in nd1:
+                total_log_prob += d[k]*math.log(nd1[k])
+            else: 
+                total_log_prob += d[k]*math.log(epsilon)
+        lp1 = total_log_prob
+        total_log_prob = 0.0
+        for k in d:
+            if k in nd2:
+                total_log_prob += d[k]*math.log(nd2[k])
+            else: 
+                total_log_prob += d[k]*math.log(epsilon)
+        lp2 = total_log_prob
+        return [lp1, lp2]
+        
+    def createAllDictionaries(self):
+        """Creates all five of self's dictionaries in full"""
+        self.makeSentenceLenghts()
+        self.makeWords()
+        self.makeStems()
+        self.makePunctuation()
+        self.makeWordLenghts()
+
+    def compareTextwithTwoModels(self, model1, model2): 
+        """compareTextWithTwoModels runs the compareDictionaries method for each dictionary"""
+        words = self.compareDictionaries(self.words, model1.normalizeDictionary(model1.words), model2.normalizeDictionary(model2.words))
+        wordslenghts = self.compareDictionaries(self.wordlenghts, model1.normalizeDictionary(model1.wordlenghts), model2.normalizeDictionary(model2.wordlenghts))
+        sentencelenghts = self.compareDictionaries(self.sentencelengths, model1.normalizeDictionary(model1.sentencelengths), model2.normalizeDictionary(model2.sentencelengths))
+        stems = self.compareDictionaries(self.stems, model1.normalizeDictionary(model1.stems), model2.normalizeDictionary(self.punctuation, model1.normalizeDictionary(model1.punctuation), model2.normalizeDictionary(model2.punctuation)))
+
+    
+                        
+
+
+
+# And let's test things out here...
+TM = TextModel()
+
+# Add a call that puts information into the model
+TM.addRawText("""This is a small sentence. This isn't a small
+sentence, because this sentence contains more than 10 words and a
+number! This isn't a question, is it?""")
+
+TM.addFileText()
+
+# Put the above triple-quoted string into a file named test.txt, then run this:
+#  TMintro.addFileText("test.txt")   # "comment in" this line, once the file is created
+
+# Print it out
+print("TM is", TM)
+
+
+# Add more calls - and more models - here:
+
+TM.makeWordLengths()
+print(TM.wordlengths)
